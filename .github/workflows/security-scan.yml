@@ -1,0 +1,56 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      - name: Create Docker network
+        run: docker network create zapnet || true
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: myapp:latest
+          vuln-type: os,library
+          format: table
+
+      - name: Install Semgrep
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install semgrep
+      - name: Run Semgrep (all default rules)
+        run: |
+          semgrep scan --config auto .
+
+      - name: Run app container
+        run: docker run -d --name myapp --network zapnet -p 8080:8080 myapp:latest
+
+      - name: Wait for app
+        run: |
+          for i in {1..12}; do
+            if curl -s http://localhost:8080 >/dev/null; then
+              echo "App is up"
+              break
+            fi
+            echo "Waiting for app..."
+            sleep 5
+          done
+
+
+      - name: Run OWASP ZAP Full Scan
+        run: |
+          docker run --rm -u zap --network zapnet -v ${{ github.workspace }}:/zap/wrk/:rw -i ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py -t http://myapp:8080 -I
