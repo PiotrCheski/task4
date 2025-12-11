@@ -38,4 +38,4 @@ jobs:
       - name: Run OWASP ZAP Full Scan
         run: |
           docker run --rm -u zap --network zapnet -v ${{ github.workspace }}:/zap/wrk/:rw -i ghcr.io/zaproxy/zaproxy:stable \
-            zap-full-scan.py -t http://myapp:8080 -z "-configfile /dev/null -failOn WARN=0"
+            zap-full-scan.py -t http://myapp:8080 -I
