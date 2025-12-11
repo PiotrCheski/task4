@@ -9,13 +9,20 @@ on:
 jobs:
   security-tests:
     runs-on: ubuntu-latest
+    services:
+      myapp:
+        image: myapp:latest
+        ports:
+          - 8080:8080
+        options: >-
+          --health-cmd "curl -f http://localhost:8080 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-
-      - name: Build Docker image
-        run: docker build -t myapp:latest .
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@0.33.1
@@ -32,3 +39,8 @@ jobs:
       - name: Run Semgrep (all default rules)
         run: |
           semgrep scan --config auto .
+
+      - name: Run OWASP ZAP Baseline Scan
+        run: |
+          docker run --rm -u zap -v ${{ github.workspace }}:/zap/wrk/:rw -i zaproxy/zap-stable \
+            zap-baseline.py -t http://myapp:8080 -r zap_report.html
