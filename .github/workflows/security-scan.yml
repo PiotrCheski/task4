@@ -37,11 +37,16 @@ jobs:
 
       - name: Run OWASP ZAP Full Scan
         run: |
-          docker run --rm -u zap --network zapnet -v ${{ github.workspace }}:/zap/wrk/:rw -i ghcr.io/zaproxy/zaproxy:stable \
-            zap-full-scan.py -t http://myapp:8080 -J report_json.json -w report_md.md -r report_html.html
+          mkdir -p ${{ github.workspace }}/zap-reports
+          docker run --rm -u zap \
+            -v ${{ github.workspace }}/zap-reports:/zap/wrk/:rw \
+            -i ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py -t http://myapp:8080 \
+            -J report_json.json -w report_md.md -r report_html.html
 
       - name: Upload ZAP report
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
-          path: report_html.html
+          path: zap-reports/report_html.html
+
