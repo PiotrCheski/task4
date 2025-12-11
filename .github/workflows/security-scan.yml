@@ -20,6 +20,21 @@ jobs:
       - name: Create Docker network
         run: docker network create zapnet || true
 
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: myapp:latest
+          vuln-type: os,library
+          format: table
+
+      - name: Install Semgrep
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install semgrep
+      - name: Run Semgrep (all default rules)
+        run: |
+          semgrep scan --config auto .
+
       - name: Run app container
         run: docker run -d --name myapp --network zapnet -p 8080:8080 myapp:latest
 
